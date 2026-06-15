@@ -1,0 +1,41 @@
+name: Build NEAR Contract
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.25'
+
+    - name: Install NEAR-GO CLI
+      run: |
+        go install github.com/vlmoon99/near-sdk-go/cmd/near-go@latest || echo "Need to use another way to install near-go, falling back to tinygo..."
+
+    - name: Build Contract using Go
+      run: |
+        # Владтың SDK-сі Linux-те жұмыс істейді.
+        # Егер near-go CLI орнатылмаса, біз оның орнына TinyGo немесе Go wasip1 арқылы жинай аламыз:
+        GOOS=wasip1 GOARCH=wasm go build -o contract.wasm ./contract/main.go
+      continue-on-error: true
+
+    - name: Install TinyGo (Fallback)
+      if: steps.build.outcome != 'success'
+      run: |
+        wget https://github.com/tinygo-org/tinygo/releases/download/v0.31.2/tinygo_0.31.2_amd64.deb
+        sudo dpkg -i tinygo_0.31.2_amd64.deb
+        tinygo build -o contract.wasm -target wasm -no-debug ./contract/main.go
+
+    - name: Upload WASM Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: near-contract-wasm
+        path: contract.wasm
