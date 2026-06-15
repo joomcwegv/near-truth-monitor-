@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Truth Protocol — Мектеп коррупциясын әшкерелеу</title>
+    <meta name="description" content="NEAR блокчейнінде мектептер мен балабақшалардағы коррупцияны әшкерелейтін орталықсыздандырылған платформа">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-brand">
+            <div class="brand-icon">🔍</div>
+            <span class="brand-text">Truth Protocol</span>
+        </div>
+        <div class="nav-status" id="navStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">NEAR Testnet</span>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" id="hero">
+        <div class="hero-badge">
+            <span class="badge-icon">⛓️</span>
+            <span>Блокчейнде сақталған • Өзгертілмейтін</span>
+        </div>
+        <h1 class="hero-title">
+            <span class="title-gradient">Ақиқат</span> жасырылмайды
+        </h1>
+        <p class="hero-subtitle">
+            Мектеп пен балабақша коррупциясын NEAR блокчейніне жазып, 
+            мәңгілікке сақтаңыз. Ешкім өшіре алмайды.
+        </p>
+        <div class="hero-stats" id="heroStats">
+            <div class="stat-card">
+                <div class="stat-value" id="statReports">0</div>
+                <div class="stat-label">Шағым</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statTreasury">0</div>
+                <div class="stat-label">NEAR жиналды</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statSchools">0</div>
+                <div class="stat-label">Мектеп</div>
+            </div>
+        </div>
+        <button class="btn-primary" onclick="scrollToForm()">
+            <span>📝</span> Шағым жазу
+        </button>
+    </header>
+
+    <!-- Report Form -->
+    <section class="section" id="formSection">
+        <div class="section-header">
+            <h2 class="section-title">Жаңа шағым жазу</h2>
+            <p class="section-desc">Деректеріңіз блокчейнде мәңгілікке сақталады</p>
+        </div>
+        <form class="report-form" id="reportForm">
+            <div class="form-group">
+                <label class="form-label" for="schoolName">🏫 Мектеп / Балабақша атауы</label>
+                <input type="text" id="schoolName" class="form-input" placeholder="Мысалы: Атырау қ. №5 мектеп" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="category">📂 Санат</label>
+                <select id="category" class="form-input form-select">
+                    <option value="budget">💰 Бюджет — қаражаттың жұмсалуы</option>
+                    <option value="infrastructure">🏗️ Инфрақұрылым — жөндеу, жағдай</option>
+                    <option value="food">🍽️ Тамақтандыру — сапасы, жеткізу</option>
+                    <option value="staff">👤 Кадрлар — біліктілік, заңбұзушылық</option>
+                    <option value="other">📌 Басқа</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="reportText">📝 Шағым мәтіні</label>
+                <textarea id="reportText" class="form-input form-textarea" placeholder="Не болғанын егжей-тегжейлі жазыңыз..." required></textarea>
+            </div>
+            <button type="submit" class="btn-submit" id="submitBtn">
+                <span class="btn-text">Блокчейнге жазу</span>
+                <span class="btn-loader" style="display:none"></span>
+            </button>
+            <div class="form-note">
+                ⚠️ Деректер NEAR блокчейніне жазылады. Жазылған мәлімет өзгертілмейді және өшірілмейді.
+            </div>
+        </form>
+    </section>
+
+    <!-- Reports List -->
+    <section class="section" id="reportsSection">
+        <div class="section-header">
+            <h2 class="section-title">Шағымдар тізімі</h2>
+            <p class="section-desc">Блокчейннен тікелей оқылады</p>
+        </div>
+        <div class="reports-list" id="reportsList">
+            <div class="loading-spinner" id="loadingSpinner">
+                <div class="spinner"></div>
+                <span>Блокчейннен оқылуда...</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">🔍 Truth Protocol</div>
+            <div class="footer-info">
+                Контракт: <a href="https://testnet.nearblocks.io/address/truth-monitor-123.testnet" target="_blank" class="footer-link">truth-monitor-123.testnet</a>
+            </div>
+            <div class="footer-tech">NEAR Protocol • Testnet • Go SDK</div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span class="toast-icon"></span>
+        <span class="toast-message"></span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
