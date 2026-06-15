@@ -31,15 +31,17 @@ jobs:
 
       - name: Build Contract
         run: |
-          cd contract
           go mod tidy
-          near-go build project
+          near-go build ./contract
           echo "Build finished! Directory contents:"
           ls -la
+          ls -la contract/ || true
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: near-contract-wasm
-          path: contract/main.wasm
+          path: |
+            *.wasm
+            contract/*.wasm
           if-no-files-found: error
