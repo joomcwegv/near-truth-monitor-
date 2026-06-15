@@ -15,6 +15,7 @@ type Report struct {
 }
 
 // Contract — біздің негізгі смарт-келісімшарт (Владтың архитектурасы негізінде)
+// @contract:state
 type Contract struct {
 	Reports     []Report        `json:"reports"`
 	Treasury    types.Balance   `json:"treasury"` // Біздің комиссия (пайдамыз)
