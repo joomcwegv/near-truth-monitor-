@@ -14,7 +14,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version: '1.25'
 
     - name: Install NEAR-GO CLI
       run: |
@@ -30,8 +30,8 @@ jobs:
     - name: Install TinyGo (Fallback)
       if: steps.build.outcome != 'success'
       run: |
-        wget https://github.com/tinygo-org/tinygo/releases/download/v0.31.2/tinygo_0.31.2_amd64.deb
-        sudo dpkg -i tinygo_0.31.2_amd64.deb
+        wget https://github.com/tinygo-org/tinygo/releases/download/v0.41.1/tinygo_0.41.1_amd64.deb
+        sudo dpkg -i tinygo_0.41.1_amd64.deb
         tinygo build -o contract.wasm -target wasm -no-debug ./contract/main.go
 
     - name: Upload WASM Artifact
