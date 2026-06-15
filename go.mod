@@ -1,6 +1,6 @@
 module near-truth-monitor
 
-go 1.25.4
+go 1.22.0
 
 require github.com/vlmoon99/near-sdk-go v0.1.1
 
