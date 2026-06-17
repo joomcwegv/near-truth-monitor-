@@ -57,9 +57,14 @@
                 <div class="stat-label">Мектеп</div>
             </div>
         </div>
-        <button class="btn-primary" id="heroActionBtn" onclick="scrollToForm()">
-            <span>📝</span> Шағым жазу
-        </button>
+        <div class="hero-actions" style="display: flex; gap: 16px; justify-content: center;">
+            <button class="btn-primary" id="heroActionBtn" onclick="scrollToForm()">
+                <span>📝</span> Шағым жазу
+            </button>
+            <button class="btn-primary" id="withdrawBtn" onclick="withdrawTreasury()" style="display: none; background: var(--success); color: white;">
+                <span>💰</span> Қазынаны шешіп алу
+            </button>
+        </div>
     </header>
 
     <!-- Report Form -->

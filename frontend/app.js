@@ -7,6 +7,7 @@ const WALLET_URL = 'https://testnet.mynearwallet.com/';
 let wallet;
 let accountId = null;
 let near;
+let contractOwner = null;
 
 // Initialize NEAR
 async function initNear() {
@@ -35,7 +36,8 @@ async function initNear() {
             updateAuthUI(false);
         }
 
-        // Load reports initially
+        // Load owner and reports
+        fetchOwner();
         loadReports();
     } catch (err) {
         console.error("Init Error:", err);
@@ -72,6 +74,9 @@ function updateAuthUI(isSignedIn) {
             heroBtn.onclick = login;
         }
     }
+    
+    // Check if user is owner to show withdraw button
+    checkOwner();
 }
 
 function login() {
@@ -86,6 +91,76 @@ function logout() {
     accountId = null;
     updateAuthUI(false);
     showToast("Әмияннан шықтыңыз", "success");
+}
+
+async function fetchOwner() {
+    try {
+        const response = await fetch(NODE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: '1',
+                method: 'query',
+                params: {
+                    request_type: 'call_function',
+                    finality: 'final',
+                    account_id: CONTRACT_ID,
+                    method_name: 'get_owner',
+                    args_base64: 'e30='
+                }
+            })
+        });
+
+        const data = await response.json();
+        if (data.result && data.result.result) {
+            const bytes = data.result.result;
+            const text = new TextDecoder().decode(new Uint8Array(bytes));
+            contractOwner = JSON.parse(text);
+            checkOwner();
+        }
+    } catch (e) {
+        console.error("Failed to fetch owner:", e);
+    }
+}
+
+function checkOwner() {
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    if (withdrawBtn) {
+        if (accountId && contractOwner && accountId === contractOwner) {
+            withdrawBtn.style.display = 'inline-flex';
+        } else {
+            withdrawBtn.style.display = 'none';
+        }
+    }
+}
+
+async function withdrawTreasury() {
+    if (!wallet || !wallet.isSignedIn()) return;
+    
+    const btn = document.getElementById('withdrawBtn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Күте тұрыңыз...';
+    
+    try {
+        const account = wallet.account();
+        await account.functionCall({
+            contractId: CONTRACT_ID,
+            methodName: 'withdraw',
+            args: {},
+            gas: '30000000000000'
+        });
+        
+        showToast("Қазына сәтті шешіп алынды!", "success");
+        loadReports();
+    } catch (err) {
+        console.error("Withdraw Error:", err);
+        showToast("Қате: Ақша шешілмеді", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
 }
 
 // Fetch reports directly from RPC to not rely on wallet connection for viewing
