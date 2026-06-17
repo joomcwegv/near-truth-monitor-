@@ -1,0 +1,14 @@
+# Environment files (contains secrets!)
+.env
+near-ai-oracle/.env
+
+# Temp files
+temp_respond_args.json
+*.wasm
+
+# Node
+node_modules/
+
+# Test args
+add_report_args.json
+empty_args.json

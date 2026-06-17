@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'near-ai-oracle/**'
+      - '.github/workflows/build-ai.yml'
   workflow_dispatch:
 
 jobs:
@@ -11,35 +12,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y binaryen
 
-      - name: Set up Go 1.25.4
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.4'
+          go-version: '1.23'
 
-      - name: Download TinyGo 0.41.1
+      - name: Install near-cli-go (from our fork)
         run: |
-          wget https://github.com/tinygo-org/tinygo/releases/download/v0.41.1/tinygo_0.41.1_amd64.deb
-          sudo dpkg -i tinygo_0.41.1_amd64.deb
-          tinygo version
+          git clone -b fix/critical-bugs https://github.com/joomcwegv/near-cli-go.git
+          cd near-cli-go
+          chmod +x setup.sh
+          ./setup.sh
+          go build -o near-go .
+          mkdir -p $HOME/.near-go
+          cp near-go $HOME/.near-go/
+          cp setup.sh $HOME/.near-go/
+          echo "$HOME/.near-go" >> $GITHUB_PATH
+          echo "$HOME/.near-go/tinygo/bin" >> $GITHUB_PATH
 
-      - name: Download near-go CLI
-        run: |
-          wget https://github.com/joomcwegv/near-cli-go/releases/latest/download/near-go-linux-amd64
-          chmod +x near-go-linux-amd64
-          sudo mv near-go-linux-amd64 /usr/local/bin/near-go
-          near-go version
-
-      - name: Build WASM Contract
+      - name: Build AI Oracle Contract
         run: |
           cd near-ai-oracle
-          near-go build
+          go mod tidy
+          near-go build project
+          echo "Build finished! Directory contents:"
+          ls -la
 
       - name: Upload WASM Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ai-oracle-wasm
-          path: near-ai-oracle/*.wasm
+          path: near-ai-oracle/main.wasm
+          if-no-files-found: error
