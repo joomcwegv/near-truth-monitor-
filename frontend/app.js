@@ -6,17 +6,89 @@ const WALLET_URL = 'https://testnet.mynearwallet.com/';
 // State
 let wallet;
 let accountId = null;
+let near;
 
-// Initialize NEAR via RPC for view calls
+// Initialize NEAR
 async function initNear() {
     try {
+        const { connect, keyStores, WalletConnection } = window.nearApi;
+        
+        // Setup configuration
+        const connectionConfig = {
+            networkId: NETWORK_ID,
+            keyStore: new keyStores.BrowserLocalStorageKeyStore(),
+            nodeUrl: NODE_URL,
+            walletUrl: WALLET_URL,
+            helperUrl: 'https://helper.testnet.near.org',
+            explorerUrl: 'https://testnet.nearblocks.io'
+        };
+
+        // Connect to NEAR
+        near = await connect(connectionConfig);
+        wallet = new WalletConnection(near, 'truth-protocol');
+        
+        // Handle auth
+        if (wallet.isSignedIn()) {
+            accountId = wallet.getAccountId();
+            updateAuthUI(true);
+        } else {
+            updateAuthUI(false);
+        }
+
+        // Load reports initially
         loadReports();
     } catch (err) {
         console.error("Init Error:", err);
+        showToast("Блокчейнге қосылу қателігі", "error");
     }
 }
 
-// Fetch reports directly from RPC
+function updateAuthUI(isSignedIn) {
+    const authBtn = document.getElementById('authBtn');
+    const heroBtn = document.getElementById('heroActionBtn');
+    
+    authBtn.style.display = 'inline-block';
+    
+    if (isSignedIn) {
+        authBtn.textContent = accountId.substring(0, 14) + (accountId.length > 14 ? '...' : '') + ' (Шығу)';
+        authBtn.onclick = logout;
+        authBtn.style.background = 'var(--bg-secondary)';
+        authBtn.style.color = 'var(--text-primary)';
+        authBtn.style.border = '1px solid var(--border)';
+        
+        if (heroBtn) {
+            heroBtn.innerHTML = '<span>📝</span> Шағым жазу';
+            heroBtn.onclick = scrollToForm;
+        }
+    } else {
+        authBtn.textContent = 'Әмиянды қосу';
+        authBtn.onclick = login;
+        authBtn.style.background = 'var(--accent-gradient)';
+        authBtn.style.color = 'white';
+        authBtn.style.border = 'none';
+        
+        if (heroBtn) {
+            heroBtn.innerHTML = '<span>👛</span> Әмиянды қосу';
+            heroBtn.onclick = login;
+        }
+    }
+}
+
+function login() {
+    wallet.requestSignIn({
+        contractId: CONTRACT_ID,
+        methodNames: ['add_report', 'tip_report']
+    });
+}
+
+function logout() {
+    wallet.signOut();
+    accountId = null;
+    updateAuthUI(false);
+    showToast("Әмияннан шықтыңыз", "success");
+}
+
+// Fetch reports directly from RPC to not rely on wallet connection for viewing
 async function loadReports() {
     showSpinner(true);
     try {
@@ -66,7 +138,6 @@ function updateStats(reports) {
     reports.forEach(r => {
         if (r.school_name) schools.add(r.school_name);
         if (r.tips) {
-            // Convert yoctoNEAR to NEAR roughly
             const tipInNear = parseFloat(r.tips) / 1e24;
             if (!isNaN(tipInNear)) totalTips += tipInNear;
         }
@@ -90,7 +161,10 @@ function renderReports(reports) {
     }
 
     // Reverse to show newest first
-    const html = [...reports].reverse().map(report => {
+    const html = [...reports].reverse().map((report, index) => {
+        // Since we reversed the array, we need to calculate the actual index in the contract
+        const actualIndex = reports.length - 1 - index;
+        
         const catMap = {
             'budget': '💰 Бюджет',
             'infrastructure': '🏗️ Инфрақұрылым',
@@ -115,7 +189,10 @@ function renderReports(reports) {
                 <div class="report-text">${escapeHtml(report.text)}</div>
                 <div class="report-footer">
                     <div class="report-author">✍️ ${escapeHtml(report.author)}</div>
-                    <div class="report-tips">${tipText}</div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div class="report-tips">${tipText}</div>
+                        <button class="btn-primary" style="padding: 4px 10px; font-size: 12px;" onclick="tipReport(${actualIndex})">Донат</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -127,6 +204,12 @@ function renderReports(reports) {
 // Form Submission
 document.getElementById('reportForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    if (!wallet || !wallet.isSignedIn()) {
+        showToast("Алдымен әмиянды қосыңыз!", "warning");
+        login();
+        return;
+    }
     
     const schoolName = document.getElementById('schoolName').value;
     const category = document.getElementById('category').value;
@@ -140,14 +223,66 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
     btnText.style.display = 'none';
     loader.style.display = 'inline-block';
 
-    showToast("Бұл тек оқуға арналған MVP. Әмиян қосылған жоқ.", "error");
-    
-    setTimeout(() => {
+    try {
+        const account = wallet.account();
+        await account.functionCall({
+            contractId: CONTRACT_ID,
+            methodName: 'add_report',
+            args: {
+                schoolName: schoolName,
+                category: category,
+                text: text
+            },
+            gas: '30000000000000' // 30 Tgas
+        });
+        
+        // This won't run if the wallet redirects, but good if it doesn't
+        document.getElementById('reportForm').reset();
+        showToast("Шағым сәтті жазылды!", "success");
+        loadReports();
+    } catch (err) {
+        console.error("Submit Error:", err);
+        showToast("Қате: Шағым жіберілмеді", "error");
+    } finally {
         btn.disabled = false;
         btnText.style.display = 'inline-block';
         loader.style.display = 'none';
-    }, 2000);
+    }
 });
+
+// Tipping Function
+async function tipReport(index) {
+    if (!wallet || !wallet.isSignedIn()) {
+        showToast("Донат жіберу үшін әмиянды қосыңыз", "warning");
+        login();
+        return;
+    }
+    
+    // We'll prompt the user for an amount in NEAR, defaulting to 0.1
+    const amountStr = prompt("Қанша NEAR донат жібергіңіз келеді?", "0.1");
+    if (!amountStr || isNaN(amountStr)) return;
+    
+    const amountInYocto = window.nearApi.utils.format.parseNearAmount(amountStr);
+    
+    try {
+        const account = wallet.account();
+        await account.functionCall({
+            contractId: CONTRACT_ID,
+            methodName: 'tip_report',
+            args: {
+                reportIndex: parseInt(index)
+            },
+            gas: '30000000000000',
+            attachedDeposit: amountInYocto
+        });
+        
+        showToast("Донат жіберілді! Рахмет!", "success");
+        loadReports();
+    } catch (err) {
+        console.error("Tip Error:", err);
+        showToast("Донат жіберу сәтсіз аяқталды", "error");
+    }
+}
 
 // Utilities
 function showSpinner(show) {
