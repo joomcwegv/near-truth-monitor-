@@ -1,0 +1,45 @@
+name: Build AI Oracle Contract
+
+on:
+  push:
+    paths:
+      - 'near-ai-oracle/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y binaryen
+
+      - name: Set up Go 1.25.4
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.4'
+
+      - name: Download TinyGo 0.41.1
+        run: |
+          wget https://github.com/tinygo-org/tinygo/releases/download/v0.41.1/tinygo_0.41.1_amd64.deb
+          sudo dpkg -i tinygo_0.41.1_amd64.deb
+          tinygo version
+
+      - name: Download near-go CLI
+        run: |
+          wget https://github.com/joomcwegv/near-cli-go/releases/latest/download/near-go-linux-amd64
+          chmod +x near-go-linux-amd64
+          sudo mv near-go-linux-amd64 /usr/local/bin/near-go
+          near-go version
+
+      - name: Build WASM Contract
+        run: |
+          cd near-ai-oracle
+          near-go build
+
+      - name: Upload WASM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-oracle-wasm
+          path: near-ai-oracle/*.wasm

@@ -1,0 +1,12 @@
+[package]
+name = "yield-resume-integration-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+near-workspaces = "0.22.0"
+tokio = { version = "1.41.1", features = ["full"] }
+anyhow = "1.0.93"
+serde_json = "1.0.133"
+serde = { version = "1.0.215", features = ["derive"] }
+near-gas = "0.3.0"
