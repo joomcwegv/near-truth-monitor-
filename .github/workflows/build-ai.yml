@@ -12,13 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
 
-      - name: Install near-cli-go (from our fork)
+      - name: Install near-cli-go
         run: |
           git clone -b fix/critical-bugs https://github.com/joomcwegv/near-cli-go.git
           cd near-cli-go
@@ -39,9 +41,11 @@ jobs:
           echo "Build finished! Directory contents:"
           ls -la
 
-      - name: Upload WASM Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ai-oracle-wasm
-          path: near-ai-oracle/main.wasm
-          if-no-files-found: error
+      - name: Commit and Push WASM
+        run: |
+          cd near-ai-oracle
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add main.wasm
+          git commit -m "chore: auto-build ai-oracle wasm [skip ci]" || echo "No changes to commit"
+          git push
